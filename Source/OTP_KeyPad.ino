@@ -176,11 +176,11 @@ void loop()
           Serial.println("Access");
           preferences.putInt(numberOfFailsInRowKey, 0);
           uint8_t senderData[] = "Access";
-          while (esp_now_send(receiverMacAddress, senderData, sizeof(senderData)) != ESP_OK) {
-            delay(100);
-          }
+          esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
       } else {
         Serial.println("Deny");
+        uint8_t senderData[] = "Deny";
+        esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
         int numberOfFailsInRow = preferences.getInt(numberOfFailsInRowKey, 0);
         numberOfFailsInRow++;
         if (numberOfFailsInRow == 5) {
@@ -198,5 +198,5 @@ void loop()
   }
 
   ended = false;
-  delay(1000);
+  delay(100);
 }

@@ -78,6 +78,15 @@ void OnDataRecv(const uint8_t *macAddr, const uint8_t *data, int len)
     display.display();
     delay(1000);
     printPassword();
+  } else if (receivedMessage == "Deny") {
+    display.clearDisplay();
+    int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+    int16_t y = (SCREEN_HEIGHT - 8) / 2;
+    display.setCursor(x, y);
+    display.println("Deny");
+    display.display();
+    delay(1000);
+    printPassword();
   } else if (receivedMessage == "New Password") {
     newPassword = true;
   } else if (receivedMessage == "Ack") {
@@ -123,6 +132,7 @@ void checkBluetoothSerial()
     Serial.print("Received message: ");
     Serial.println(received);
     if (received.indexOf("|") != -1) {
+      SerialBT.print("ack");
       newPassword = true;
       std::vector<String> substrings; // Vector to store 5 substrings
 
@@ -243,9 +253,7 @@ void loop()
   time_t currentTime = now();
   int diffMinutes = (currentTime - otpSendDate) / 60;
 
-  Serial.println(currentTime);
   passwordLength = preferences.getInt(passwordLengthKey, 0);
-  Serial.println(passwordLength);
   if (passwordLength) {
     if ((currentOtp == "" )|| (diffMinutes >= otpDuration) || newPassword) {
       currentOtp = generatePassword(passwordLength);
@@ -256,13 +264,13 @@ void loop()
       stringToUint8(toSend, senderData);
 
       time_t startTime = now();
-      while ((esp_now_send(receiverMacAddress, senderData, sizeof(senderData)) != ESP_OK) && (currentTime < startTime + 5)) {
+      while ((esp_now_send(receiverMacAddress, senderData, sizeof(senderData)) != ESP_OK) && (currentTime < startTime + 2)) {
         currentTime = now();
         delay(100);
       }
 
       startTime = now();
-      while (!ack && (currentTime < startTime + 5)) {
+      while (!ack && (currentTime < startTime + 3)) {
         currentTime = now();
         delay(100);
       }
@@ -270,7 +278,7 @@ void loop()
       if (!ack) {
         display.clearDisplay();
         display.setCursor(0, 0);
-        display.print("Disconnected");
+        display.print("Connecting...");
         display.display();
       } else {
         printPassword();
@@ -279,7 +287,12 @@ void loop()
         newPassword = false;
       }
     }
+  } else {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Set Settings");
+    display.display();
   }
 
-  delay(1000);
+  delay(100);
 }
