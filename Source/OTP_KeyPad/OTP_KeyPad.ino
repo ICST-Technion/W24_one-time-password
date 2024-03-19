@@ -7,7 +7,8 @@
 #include <Preferences.h>
 #include <Time.h>
 #include <TimeLib.h>
-
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 /**********************************************************************************************************************
  *  Constants
  *********************************************************************************************************************/
@@ -19,6 +20,7 @@ static const char *numberOfFailsInRowKey = "fails_in_row";
  *********************************************************************************************************************/
 Preferences preferences;
 bool ended = false;
+bool first = false;
 time_t otpReceiveDate = 0;
 int otpDuration = 0;
 String currentOtp = "";
@@ -37,10 +39,18 @@ char keys[ROWS][COLS] = {
   {'*','0','#','D'}
 };
 byte rowPins[ROWS] = {13, 12, 14, 27}; //connect to the row pinouts of the keypad
-byte colPins[COLS] = {5, 18, 19, 21}; //connect to the column pinouts of the keypad
+byte colPins[COLS] = {5, 18, 19, 23}; //connect to the column pinouts of the keypad
 
 //initialize an instance of class NewKeypad
 Adafruit_Keypad customKeypad = Adafruit_Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+/**********************************************************************************************************************
+ * Oled Initialization
+ *********************************************************************************************************************/
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 /**********************************************************************************************************************
  * Esp-Now Initialization
@@ -60,27 +70,28 @@ void OnDataRecv(const uint8_t *macAddr, const uint8_t *data, int len)
 
   uint8_t senderData[] = "Ack";
   esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
+  if (receivedMessage != "Test") {
+    String delimiter = "|"; 
+    size_t pos = 0;
+    // Extract the first substring
+    pos = receivedMessage.indexOf(delimiter);
+    currentOtp = receivedMessage.substring(0, pos);
+    receivedMessage.remove(0, pos + delimiter.length());
+    // Extract the second substring
+    pos = receivedMessage.indexOf(delimiter);
+    otpDuration = (receivedMessage.substring(0, pos)).toInt();
+    receivedMessage.remove(0, pos + delimiter.length());
+    // The remaining part of the string is the third substring
+    preferences.putString(defaultPasswordKey, defaultPassword);
+    defaultPassword = receivedMessage;
 
-  String delimiter = "|"; 
-  size_t pos = 0;
-  // Extract the first substring
-  pos = receivedMessage.indexOf(delimiter);
-  currentOtp = receivedMessage.substring(0, pos);
-  receivedMessage.remove(0, pos + delimiter.length());
-  // Extract the second substring
-  pos = receivedMessage.indexOf(delimiter);
-  otpDuration = (receivedMessage.substring(0, pos)).toInt();
-  receivedMessage.remove(0, pos + delimiter.length());
-  // The remaining part of the string is the third substring
-  preferences.putString(defaultPasswordKey, defaultPassword);
-  defaultPassword = receivedMessage;
-
-  Serial.print("New password: ");
-  Serial.println(currentOtp);
-  Serial.print("Password duration: ");
-  Serial.print(otpDuration);
-  Serial.print("Default password: ");
-  Serial.print(defaultPassword);
+    Serial.print("New password: ");
+    Serial.println(currentOtp);
+    Serial.print("Password duration: ");
+    Serial.print(otpDuration);
+    Serial.print("Default password: ");
+    Serial.print(defaultPassword);
+  }
 }
 
 /**********************************************************************************************************************
@@ -112,6 +123,16 @@ void setup()
   // Register for a callback function that will be called when data is received
   esp_now_register_recv_cb(OnDataRecv);
 
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;);
+  }
+
+  delay(2000);
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+
   customKeypad.begin();
 
   preferences.begin("saved-data", false);
@@ -129,7 +150,6 @@ void loop()
   if (currentOtp == "") {
     Serial.print("Requesting a new password: ");
     uint8_t senderData[] = "New Password";
-
     esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
   }
 
@@ -146,12 +166,17 @@ void loop()
 
   String receivedPassword = "";   
   if (currentOtp != "") {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Enter the \npassword:");
+    display.display();
     // Read digits from keypad until the sequence is completed
     // TBD && diffMinutes >= otpDuration
     currentTime = now();
     time_t startTime = now();
+    String stars = "";   
     while (!ended && 
-           (receivedPassword.length() < currentOtp.length()) && 
+           (receivedPassword.length() < (currentOtp.length() + 1)) && 
            (currentTime < (startTime + 20))) {
       customKeypad.tick();
       if (customKeypad.available()) {
@@ -162,9 +187,25 @@ void loop()
           if (key == '#') {
             ended = true;
             Serial.println("\nEnd input sequence");
+          } else if (key == 'D') {
+            if (receivedPassword.length() != 0) {
+              receivedPassword = receivedPassword.substring(0, receivedPassword.length()-1);
+              stars = stars.substring(0, stars.length()-1);;
+            }
           } else {
+            if (!first) {
+              first = true;
+              startTime = now();
+            }
             receivedPassword += key;
+            stars += "*";
           }
+          display.clearDisplay();
+          int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+          int16_t y = (SCREEN_HEIGHT - 8) / 2;
+          display.setCursor(x, y);
+          display.println(stars);
+          display.display();
         }
       }
       delay(100);
@@ -177,26 +218,57 @@ void loop()
           preferences.putInt(numberOfFailsInRowKey, 0);
           uint8_t senderData[] = "Access";
           esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
+          display.clearDisplay();
+          int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+          int16_t y = (SCREEN_HEIGHT - 8) / 2;
+          display.setCursor(x, y);
+          display.println("Access");
+          display.display();
+          delay(1000);
       } else {
         Serial.println("Deny");
         uint8_t senderData[] = "Deny";
         esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
+        display.clearDisplay();
+        int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+        int16_t y = (SCREEN_HEIGHT - 8) / 2;
+        display.setCursor(x, y);
+        display.println("Deny");
+        display.display();
+        delay(1000);
         int numberOfFailsInRow = preferences.getInt(numberOfFailsInRowKey, 0);
         numberOfFailsInRow++;
-        if (numberOfFailsInRow == 5) {
+        if (numberOfFailsInRow >= 3) {
           uint8_t senderData[] = "Potential Attack";
-          while (esp_now_send(receiverMacAddress, senderData, sizeof(senderData)) != ESP_OK) {
-            delay(100);
-          }
+          esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
           preferences.putInt(numberOfFailsInRowKey, 0);
-          delay(30000);
+          display.clearDisplay();
+          display.setCursor(0, 0);
+          display.println("Locked:");
+          display.display();
+          delay(1000);
+          for (int i = 30; i > 0; i--) {
+            display.clearDisplay();
+            display.setCursor(x, y);
+            display.println(i);
+            display.display();
+            delay(1000);
+          }
         } else {
           preferences.putInt(numberOfFailsInRowKey, numberOfFailsInRow);
         }
       }
     }
+  } else {
+    display.clearDisplay();
+    int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+    int16_t y = (SCREEN_HEIGHT - 8) / 2;
+    display.setCursor(x, y);
+    display.println("Error");
+    display.display();
   }
 
   ended = false;
+  first = false;
   delay(100);
 }
