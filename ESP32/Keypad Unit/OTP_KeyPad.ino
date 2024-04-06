@@ -167,16 +167,14 @@ void loop()
   String receivedPassword = "";   
   if (currentOtp != "") {
     display.clearDisplay();
-    display.setCursor(0, 0);
+    display.setCursor(0, 10);
     display.println("Enter the \npassword:");
     display.display();
-    // Read digits from keypad until the sequence is completed
-    // TBD && diffMinutes >= otpDuration
     currentTime = now();
     time_t startTime = now();
     String stars = "";   
     while (!ended && 
-           (receivedPassword.length() < (currentOtp.length() + 1)) && 
+           (receivedPassword.length() < 7) && 
            (currentTime < (startTime + 20))) {
       customKeypad.tick();
       if (customKeypad.available()) {
@@ -201,7 +199,7 @@ void loop()
             stars += "*";
           }
           display.clearDisplay();
-          int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+          int16_t x = ((SCREEN_WIDTH - (6 * stars.length())) / 2) - 10;
           int16_t y = (SCREEN_HEIGHT - 8) / 2;
           display.setCursor(x, y);
           display.println(stars);
@@ -212,14 +210,16 @@ void loop()
       currentTime = now();
     }
 
-    if (receivedPassword.length() != 0) {
-        if (receivedPassword == currentOtp) {
+    if (receivedPassword.length() != 0 && ended) {
+        String df = preferences.getString(defaultPasswordKey, "");
+        if ((receivedPassword == currentOtp) || (receivedPassword == df)) {
           Serial.println("Access");
           preferences.putInt(numberOfFailsInRowKey, 0);
           uint8_t senderData[] = "Access";
           esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
           display.clearDisplay();
           int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+          x = 25;
           int16_t y = (SCREEN_HEIGHT - 8) / 2;
           display.setCursor(x, y);
           display.println("Access");
@@ -230,7 +230,7 @@ void loop()
         uint8_t senderData[] = "Deny";
         esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
         display.clearDisplay();
-        int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
+        int16_t x = ((SCREEN_WIDTH - 6 * 6) / 2) - 1;
         int16_t y = (SCREEN_HEIGHT - 8) / 2;
         display.setCursor(x, y);
         display.println("Deny");
@@ -243,13 +243,13 @@ void loop()
           esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
           preferences.putInt(numberOfFailsInRowKey, 0);
           display.clearDisplay();
-          display.setCursor(0, 0);
+          display.setCursor(23, y);
           display.println("Locked:");
           display.display();
           delay(1000);
           for (int i = 30; i > 0; i--) {
             display.clearDisplay();
-            display.setCursor(x, y);
+            display.setCursor(54, y);
             display.println(i);
             display.display();
             delay(1000);

@@ -205,7 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await _bluetoothConnection?.output.allSent;
 
       // Send settings and wait for acknowledgment with timeout
-      int timeoutInSeconds = 10;
+      int timeoutInSeconds = 15;
       DateTime startTime = DateTime.now();
       while (_passwordReceived.isEmpty) {
         // Check if timeout has occurred
@@ -401,6 +401,8 @@ class _MyHomePageState extends State<MyHomePage> {
       showSnackBar(context, 'Door is locked for 30 seconds due to multiple failed attempts.', 5);
     } else if (receivedData.contains('disconnected')) {
       showSnackBar(context, 'Keypad unit has disconnected.', 5);
+    } else if (receivedData.contains('reconnected')) {
+      showSnackBar(context, 'Keypad unit has reconnected.', 5);
     } else {
       print('Received password: $receivedData');
       _passwordReceived = receivedData;
@@ -426,6 +428,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void sendSettings(BuildContext context) async {
     setState(() {
       _isSendingSettings = true;
+      _acknowledgmentReceived = false;
     });
 
     final progress = ProgressHUD.of(context);
@@ -469,7 +472,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await _bluetoothConnection?.output.allSent;
 
       // Send settings and wait for acknowledgment with timeout
-      int timeoutInSeconds = 10;
+      int timeoutInSeconds = 17;
       DateTime startTime = DateTime.now();
       while (!_acknowledgmentReceived) {
         // Check if timeout has occurred or Bluetooth is disconnected
