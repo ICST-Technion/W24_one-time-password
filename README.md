@@ -25,11 +25,11 @@ TBD
 * 4X4 matrix keypad - number 1
 
 ## Circuit diagrams:
-### Keypad Unit Circuit:
-![Keypad Unit Circuit](Documentation/Connection diagram/Keypad unit circuit.png)
-
 ### Oled unit circuit (Admin):
-![Oled unit circuit (Admin)](Documentation/Connection diagram/Oled unit circuit (Admin).png)
+![Oled unit circuit (Admin)](https://github.com/mahmouddiab2000/one-time-password/blob/main/Documentation/Connection%20diagram/Oled%20unit%20circuit%20(Admin).png)
+
+### Keypad Unit Circuit:
+![Keypad Unit Circuit](https://github.com/mahmouddiab2000/one-time-password/blob/main/Documentation/Connection%20diagram/Keypad%20unit%20circuit.png)
 
 ## Project Poster:
 TBD
