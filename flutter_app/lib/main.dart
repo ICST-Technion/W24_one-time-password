@@ -277,8 +277,6 @@ class _MyHomePageState extends State<MyHomePage> {
       // Check if _statisticsList is not null before using it
       if (_statisticsList != null) {
         List<List<int>> statisticsCopy = List.from(_statisticsList!);
-        statisticsCopy[0][1] = 5;
-        statisticsCopy[0][2] = 10;
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => StatisticsPage(statistics: statisticsCopy)),

@@ -11,7 +11,7 @@ class StatisticsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Statistics Page'),
+        title: Text('Number of entries'),
       ),
       body: ListView.builder(
         itemCount: statistics.length,

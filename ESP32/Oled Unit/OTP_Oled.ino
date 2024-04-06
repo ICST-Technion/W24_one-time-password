@@ -45,6 +45,9 @@ bool newSettings = false;
 time_t lastCheckDate = 0;
 bool isDisconnected = false;
 time_t updatedTime = 0;
+int lockTime = 30;
+int checkFrequency = 30;
+int waitAckTimeout = 12;
 
 /**********************************************************************************************************************
  * Oled Initialization
@@ -101,7 +104,7 @@ void OnDataRecv(const uint8_t *macAddr, const uint8_t *data, int len)
     display.println("Locked:");
     display.display();
     delay(1000);
-    for (int i = 30; i > 0; i--)
+    for (int i = lockTime; i > 0; i--)
     {
       display.clearDisplay();
       int16_t x = (SCREEN_WIDTH - 6 * 6) / 2;
@@ -383,13 +386,12 @@ void loop()
       }
 
       startTime = now();
-      while (!ack && (currentTime < startTime + 12)) {
+      while (!ack && (currentTime < startTime + waitAckTimeout)) {
         currentTime = now();
         delay(10);
       } 
 
       if (ack) {
-        //Serial.print("BBB");
         printPassword();
         otpSendDate = currentTime;
         ack = false;
@@ -398,13 +400,9 @@ void loop()
         }
         newSettings = false;
         newPassword = false;
-        /*if (isDisconnected) {
-          SerialBT.print("reconnected");
-        }*/
         isDisconnected = false;
         lastCheckDate = now();
       } else {
-        //Serial.print("AAA");
         display.clearDisplay();
         display.setCursor(0, 10);
         display.print("Connecting\nTo Keypad");
@@ -413,7 +411,7 @@ void loop()
       }
     } else {
       time_t currentTime = now();
-      if (currentTime > (lastCheckDate + 30)) {
+      if (currentTime > (lastCheckDate + checkFrequency)) {
         lastCheckDate = now();
         ack = false;
         uint8_t senderData[] = "Test";
@@ -421,7 +419,7 @@ void loop()
 
         time_t startTime = now();
         currentTime = now();
-        while (!ack && (currentTime < startTime + 12)) {
+        while (!ack && (currentTime < startTime + waitAckTimeout)) {
           currentTime = now();
           delay(100);
         }
@@ -429,9 +427,6 @@ void loop()
         if (ack) {
           ack = false;
           printPassword(); 
-          /*if (isDisconnected) {
-            SerialBT.print("reconnected");
-          }*/
           isDisconnected = false;
         } else {
           SerialBT.print("disconnected");

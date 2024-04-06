@@ -1,0 +1,7 @@
+The parameters are at the top of the ESP32 code
+
+maxNumberOfFailedAttempts : the number of maximum failed attempts in row before locking the door for a period of time (see lockTime param).
+passwordTypeTime : how much time in seconds we should wait for the user to complete the password.
+lockTime : how much time in seconds the door will be locked after exceeding the maxNumberOfFailedAttempts.
+checkFrequency : how much time in seconds should wait before checking the status of the other esp again.
+waitAckTimeout : how much time in seconds to wait for receiving ack from the other esp.

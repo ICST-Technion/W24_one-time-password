@@ -25,6 +25,9 @@ time_t otpReceiveDate = 0;
 int otpDuration = 0;
 String currentOtp = "";
 String defaultPassword = "";
+int maxNumberOfFailedAttempts = 3;
+int passwordTypeTime = 20;
+int lockTime = 30;
 
 /**********************************************************************************************************************
  * Keypad Initialization
@@ -175,7 +178,7 @@ void loop()
     String stars = "";   
     while (!ended && 
            (receivedPassword.length() < 7) && 
-           (currentTime < (startTime + 20))) {
+           (currentTime < (startTime + passwordTypeTime))) {
       customKeypad.tick();
       if (customKeypad.available()) {
         keypadEvent e = customKeypad.read();
@@ -238,7 +241,7 @@ void loop()
         delay(1000);
         int numberOfFailsInRow = preferences.getInt(numberOfFailsInRowKey, 0);
         numberOfFailsInRow++;
-        if (numberOfFailsInRow >= 3) {
+        if (numberOfFailsInRow >= maxNumberOfFailedAttempts) {
           uint8_t senderData[] = "Potential Attack";
           esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
           preferences.putInt(numberOfFailsInRowKey, 0);
@@ -247,7 +250,7 @@ void loop()
           display.println("Locked:");
           display.display();
           delay(1000);
-          for (int i = 30; i > 0; i--) {
+          for (int i = lockTime; i > 0; i--) {
             display.clearDisplay();
             display.setCursor(54, y);
             display.println(i);
