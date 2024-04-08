@@ -432,7 +432,7 @@ void loop()
           SerialBT.print("disconnected");
           display.clearDisplay();
           display.setCursor(0, 10);
-          display.print("Connecting\nToKeypad");
+          display.print("Connecting\nTo Keypad");
           display.display();
           isDisconnected = true;
         }

@@ -64,16 +64,15 @@ esp_now_peer_info_t peerInfo;
 // Callback function to handle received data
 void OnDataRecv(const uint8_t *macAddr, const uint8_t *data, int len) 
 {
-  otpReceiveDate = now();
   String receivedMessage = String((const char*)data);
   Serial.print("Received message: ");
   Serial.println(receivedMessage);
-  Serial.print( "Receive date: ");
-  Serial.println(otpReceiveDate);
 
   uint8_t senderData[] = "Ack";
   esp_now_send(receiverMacAddress, senderData, sizeof(senderData));
   if (receivedMessage != "Test") {
+    otpReceiveDate = now();
+    Serial.print( "Receive date: ");
     String delimiter = "|"; 
     size_t pos = 0;
     // Extract the first substring
@@ -215,6 +214,7 @@ void loop()
 
     if (receivedPassword.length() != 0 && ended) {
         String df = preferences.getString(defaultPasswordKey, "");
+        Serial.println(df);
         if ((receivedPassword == currentOtp) || (receivedPassword == df)) {
           Serial.println("Access");
           preferences.putInt(numberOfFailsInRowKey, 0);
